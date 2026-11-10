@@ -616,6 +616,13 @@ func (m Model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.loginPolling = false
 		return m, m.loadBooksCmd()
 
+	case "o":
+		if m.authTicket != nil && m.authTicket.ImagePath != "" {
+			_ = crawler.OpenSystemFile(m.authTicket.ImagePath)
+			m.loginStatus = "已在外部窗口打开二维码图片，请使用手机扫描"
+			return m, nil
+		}
+
 	case "c":
 		m.loginMode = 1
 		m.loginPolling = false
@@ -647,6 +654,10 @@ func (m Model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			}
 			m.loginStatus = "正在校验 Cookie 有效性..."
 			return m, m.verifyAndSaveCookieCmd(cookieStr)
+		} else if m.authTicket != nil && m.authTicket.ImagePath != "" {
+			_ = crawler.OpenSystemFile(m.authTicket.ImagePath)
+			m.loginStatus = "已在外部窗口打开二维码图片，请使用手机扫描"
+			return m, nil
 		}
 	}
 
@@ -1358,35 +1369,65 @@ func (m Model) viewLogin() string {
 
 	// QR Code Scan mode (Default)
 	header := headerTitleStyle.Render("📱 抖音 / 番茄小说 App 扫码登录")
-	tip := lipgloss.NewStyle().Foreground(colorGold).Render("请打开【抖音 APP】或【番茄小说 APP】扫描下方二维码：")
 
-	qrContent := "正在获取登录二维码..."
-	if m.authTicket != nil && m.authTicket.QRArt != "" {
-		qrContent = m.authTicket.QRArt
+	qrLines := 30
+	if m.authTicket != nil && m.authTicket.QRArtLines > 0 {
+		qrLines = m.authTicket.QRArtLines
+	}
+	// Check if terminal window is tall and wide enough for full ASCII QR art
+	canFitTerminal := (m.height >= qrLines+12) && (m.width >= 72)
+
+	if canFitTerminal && m.authTicket != nil && m.authTicket.QRArt != "" {
+		// Large screen: display ASCII QR inside terminal
+		tip := lipgloss.NewStyle().Foreground(colorGold).Render("请打开【抖音 APP】或【番茄小说 APP】扫描下方二维码：")
+		qrBox := lipgloss.NewStyle().
+			Background(lipgloss.Color("#ffffff")).
+			Foreground(lipgloss.Color("#000000")).
+			Padding(0, 1).
+			Align(lipgloss.Center).
+			Render(m.authTicket.QRArt)
+
+		statusLine := lipgloss.NewStyle().Foreground(colorCyan).Render("状态: " + m.loginStatus)
+		keys := lipgloss.JoinHorizontal(lipgloss.Center,
+			keyCapKey.Render("o/Enter"), " ", keyCapDesc.Render("外部图片打开"),
+			keyCapKey.Render("c"), " ", keyCapDesc.Render("粘贴Cookie"),
+			keyCapKey.Render("s"), " ", keyCapDesc.Render("刷新二维码"),
+			keyCapKey.Render("Esc"), " ", keyCapDesc.Render("取消返回"),
+		)
+
+		body := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s\n\n%s", header, tip, qrBox, statusLine, keys)
+		return cardActiveBoxStyle.Width(min(76, m.width-4)).Render(body)
 	}
 
-	qrBox := lipgloss.NewStyle().
-		Background(lipgloss.Color("#ffffff")).
-		Foreground(lipgloss.Color("#000000")).
-		Padding(0, 1).
-		Align(lipgloss.Center).
-		Render(qrContent)
-
-	statusLine := lipgloss.NewStyle().Foreground(colorCyan).Render("状态: " + m.loginStatus)
-
-	var fileTip string
-	if m.authTicket != nil && m.authTicket.ImagePath != "" {
-		fileTip = dimStyle.Render("二维码已保存至: " + m.authTicket.ImagePath)
-	}
-
-	keys := lipgloss.JoinHorizontal(lipgloss.Center,
-		keyCapKey.Render("c"), " ", keyCapDesc.Render("粘贴Cookie登录"),
-		keyCapKey.Render("s"), " ", keyCapDesc.Render("刷新二维码"),
-		keyCapKey.Render("Esc"), " ", keyCapDesc.Render("取消返回"),
+	// Compact mode for small / laptop screens (height < 40 or width < 72)
+	screenTip := lipgloss.NewStyle().Foreground(colorGold).Render(
+		fmt.Sprintf("💻 当前终端高度较紧凑（%d 行），为避免乱码，已为你生成高清二维码图片！", m.height),
 	)
 
-	body := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s\n%s\n\n%s", header, tip, qrBox, statusLine, fileTip, keys)
-	return cardActiveBoxStyle.Width(min(76, m.width-4)).Render(body)
+	openBtn := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#1e1e2e")).
+		Background(colorCyan).
+		Padding(0, 2).
+		Render("👉 按 [ Enter ] 或 [ o ] 键：立即弹出二维码图片")
+
+	var pathInfo string
+	if m.authTicket != nil && m.authTicket.ImagePath != "" {
+		pathInfo = lipgloss.NewStyle().Foreground(colorDarkGray).Render("图片位置: " + m.authTicket.ImagePath)
+	}
+
+	statusLine := lipgloss.NewStyle().Foreground(colorCyan).Render("实时状态: " + m.loginStatus)
+
+	keys := lipgloss.JoinHorizontal(lipgloss.Center,
+		keyCapKey.Render("Enter / o"), " ", keyCapDesc.Render("打开二维码图片"),
+		keyCapKey.Render("c"), " ", keyCapDesc.Render("粘贴Cookie"),
+		keyCapKey.Render("s"), " ", keyCapDesc.Render("刷新"),
+		keyCapKey.Render("Esc"), " ", keyCapDesc.Render("返回"),
+	)
+
+	body := fmt.Sprintf("%s\n\n%s\n\n%s\n%s\n\n%s\n\n%s",
+		header, screenTip, openBtn, pathInfo, statusLine, keys)
+	return cardActiveBoxStyle.Width(min(72, m.width-4)).Render(body)
 }
 
 func (m Model) viewAddBook() string {

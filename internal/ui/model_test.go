@@ -215,4 +215,20 @@ func TestUIModelLifecycle(t *testing.T) {
 	if !strings.Contains(headerView, "测试读者") {
 		t.Fatalf("expected header to show '测试读者', got: %s", headerView)
 	}
+
+	// 13. Test Login Responsive View for Small Screens (height=24)
+	model.height = 24
+	model.width = 80
+	model.state = StateLogin
+	model.loginMode = 0
+	model.authTicket = &crawler.AuthTicket{
+		Token:      "mock_token",
+		QRArt:      "████",
+		QRArtLines: 35,
+		ImagePath:  "/tmp/login_qr.png",
+	}
+	loginView := model.viewLogin()
+	if !strings.Contains(loginView, "当前终端高度较紧凑") || !strings.Contains(loginView, "弹出二维码图片") {
+		t.Fatalf("expected responsive small screen login card, got:\n%s", loginView)
+	}
 }

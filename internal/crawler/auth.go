@@ -10,7 +10,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	qrcode "github.com/skip2/go-qrcode"
@@ -29,6 +31,7 @@ type AuthTicket struct {
 	Token      string `json:"token"`
 	QRCodeURL  string `json:"qrcode_url"`
 	QRArt      string `json:"qr_art"`
+	QRArtLines int    `json:"qr_art_lines"`
 	ImagePath  string `json:"image_path"`
 	ExpireTime int64  `json:"expire_time"`
 }
@@ -105,11 +108,16 @@ func (c *Client) GetLoginQRCode(ctx context.Context) (*AuthTicket, error) {
 		qrTargetURL = fmt.Sprintf("https://fanqienovel.com/login?token=%s", d.Token)
 	}
 
-	// Generate small terminal-friendly QR Art
-	q, err := qrcode.New(qrTargetURL, qrcode.Medium)
+	// Generate small terminal-friendly QR Art using Lowest error correction
+	q, err := qrcode.New(qrTargetURL, qrcode.Low)
 	var qrArt string
+	var qrArtLines int
 	if err == nil {
 		qrArt = q.ToSmallString(false)
+		trimmed := strings.TrimSpace(qrArt)
+		if trimmed != "" {
+			qrArtLines = len(strings.Split(trimmed, "\n"))
+		}
 	}
 
 	// Save PNG file to ~/.config/fqstory/login_qr.png
@@ -133,6 +141,7 @@ func (c *Client) GetLoginQRCode(ctx context.Context) (*AuthTicket, error) {
 		Token:      d.Token,
 		QRCodeURL:  qrTargetURL,
 		QRArt:      qrArt,
+		QRArtLines: qrArtLines,
 		ImagePath:  imagePath,
 		ExpireTime: d.ExpireTime,
 	}, nil
@@ -259,4 +268,21 @@ func (c *Client) SetCookie(cookie string) {
 // Cookie returns the current authentication cookie.
 func (c *Client) Cookie() string {
 	return c.cookie
+}
+
+// OpenSystemFile launches the OS default viewer to display an image.
+func OpenSystemFile(path string) error {
+	if path == "" {
+		return errors.New("图片路径为空")
+	}
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", path).Start()
+	case "linux":
+		return exec.Command("xdg-open", path).Start()
+	case "windows":
+		return exec.Command("cmd", "/c", "start", path).Start()
+	default:
+		return errors.New("当前操作系统不支持自动打开外部文件")
+	}
 }
