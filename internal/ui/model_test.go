@@ -231,4 +231,19 @@ func TestUIModelLifecycle(t *testing.T) {
 	if !strings.Contains(loginView, "当前终端高度较紧凑") || !strings.Contains(loginView, "弹出二维码图片") {
 		t.Fatalf("expected responsive small screen login card, got:\n%s", loginView)
 	}
+
+	// 14. Test Boss Key directly from Shelf (Home Screen)
+	model.state = StateShelf
+	m, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}})
+	model = m.(Model)
+	if model.state != StateBoss {
+		t.Fatalf("expected StateBoss after pressing 'b' on shelf, got %v", model.state)
+	}
+
+	// Press any key to restore to shelf
+	m, _ = model.Update(tea.KeyMsg{Type: tea.KeySpace})
+	model = m.(Model)
+	if model.state != StateShelf {
+		t.Fatalf("expected return to StateShelf after restoring from boss key, got %v", model.state)
+	}
 }

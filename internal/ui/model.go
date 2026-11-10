@@ -476,14 +476,19 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case tea.KeyMsg:
-		// Boss Key: global instant emergency switch
-		if (msg.String() == "b" || msg.String() == "esc") && m.state == StateReader {
-			m.prevState = m.state
-			m.state = StateBoss
-			return m, nil
-		}
+		// 1. In Boss screen: any key seamlessly restores previous view
 		if m.state == StateBoss {
 			m.state = m.prevState
+			return m, nil
+		}
+
+		// 2. Boss Key triggering:
+		// 'b' is the universal emergency boss key (available in Shelf, Reader, Rank, Toc, BookDetail, Login)
+		// 'esc' also triggers boss key specifically when inside Reader view
+		isInputting := (m.state == StateAddBook) || (m.state == StateLogin && m.loginMode == 1) || (m.state == StateToc && m.tocSearching)
+		if (msg.String() == "b" && !isInputting) || (msg.String() == "esc" && m.state == StateReader) {
+			m.prevState = m.state
+			m.state = StateBoss
 			return m, nil
 		}
 
