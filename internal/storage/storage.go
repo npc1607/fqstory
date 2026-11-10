@@ -91,6 +91,12 @@ func (s *Storage) initSchema() error {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		PRIMARY KEY (book_id, chapter_index)
 	);
+
+	CREATE TABLE IF NOT EXISTS config (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	);
 	`
 	_, err := s.db.Exec(schema)
 	return err
@@ -265,4 +271,37 @@ func (s *Storage) HasChapter(bookID string, index int) bool {
 	var count int
 	err := s.db.QueryRow("SELECT COUNT(1) FROM chapters WHERE book_id = ? AND chapter_index = ?", bookID, index).Scan(&count)
 	return err == nil && count > 0
+}
+
+// SaveConfig stores a key-value setting (e.g. cookie or user info).
+func (s *Storage) SaveConfig(key, value string) error {
+	query := `
+	INSERT INTO config (key, value, updated_at)
+	VALUES (?, ?, ?)
+	ON CONFLICT(key) DO UPDATE SET
+		value = excluded.value,
+		updated_at = excluded.updated_at;
+	`
+	_, err := s.db.Exec(query, key, value, time.Now())
+	return err
+}
+
+// GetConfig retrieves a configuration value.
+func (s *Storage) GetConfig(key string) (string, error) {
+	query := "SELECT value FROM config WHERE key = ?;"
+	var val string
+	err := s.db.QueryRow(query, key).Scan(&val)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil
+		}
+		return "", err
+	}
+	return val, nil
+}
+
+// DeleteConfig removes a configuration key.
+func (s *Storage) DeleteConfig(key string) error {
+	_, err := s.db.Exec("DELETE FROM config WHERE key = ?;", key)
+	return err
 }

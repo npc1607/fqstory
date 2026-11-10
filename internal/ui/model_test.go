@@ -180,4 +180,39 @@ func TestUIModelLifecycle(t *testing.T) {
 	if !strings.Contains(rankView, "热门排行榜") {
 		t.Fatalf("expected rank view header to contain '热门排行榜'")
 	}
+
+	// 12. Test Login flow
+	model.state = StateShelf
+	m, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'L'}})
+	model = m.(Model)
+	if model.state != StateLogin || model.loginMode != 0 {
+		t.Fatalf("expected StateLogin with QR scan mode, got state=%v, mode=%d", model.state, model.loginMode)
+	}
+
+	// Switch to paste cookie mode
+	m, _ = model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'c'}})
+	model = m.(Model)
+	if model.loginMode != 1 {
+		t.Fatalf("expected loginMode=1 after 'c', got %d", model.loginMode)
+	}
+
+	// Mock loginSuccessMsg
+	m, _ = model.Update(loginSuccessMsg{
+		user: &crawler.UserInfo{
+			ID:    "123456",
+			Name:  "测试读者",
+			IsVIP: true,
+		},
+		cookie: "sessionid=mock_session_123",
+	})
+	model = m.(Model)
+	if model.state != StateShelf || model.currentUser == nil || model.currentUser.Name != "测试读者" {
+		t.Fatalf("expected logged in user '测试读者' on shelf, got %+v", model.currentUser)
+	}
+
+	// Verify Header shows user name
+	headerView := model.viewHeader()
+	if !strings.Contains(headerView, "测试读者") {
+		t.Fatalf("expected header to show '测试读者', got: %s", headerView)
+	}
 }

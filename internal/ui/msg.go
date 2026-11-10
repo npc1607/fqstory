@@ -40,6 +40,23 @@ type batchDownloadMsg struct {
 	err     error
 }
 
+type qrCodeReceivedMsg struct {
+	ticket *crawler.AuthTicket
+	err    error
+}
+
+type qrPollTickMsg struct{}
+
+type loginSuccessMsg struct {
+	user   *crawler.UserInfo
+	cookie string
+}
+
+type userLoadedMsg struct {
+	user   *crawler.UserInfo
+	cookie string
+}
+
 type autoScrollTickMsg struct{}
 
 type errMsg struct {

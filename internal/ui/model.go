@@ -27,6 +27,7 @@ const (
 	StateAddBook
 	StateBookDetail
 	StateRank
+	StateLogin
 	StateToc
 	StateReader
 	StateBoss
@@ -68,6 +69,14 @@ type Model struct {
 	miniTickerOffset int
 	fakeScreenType   int // 0: GoTest, 1: GitStatus, 2: Docker, 3: Htop
 
+	// Auth / Login state
+	currentUser  *crawler.UserInfo
+	authTicket   *crawler.AuthTicket
+	loginMode    int // 0: QR Scan, 1: Paste Cookie
+	cookieInput  textinput.Model
+	loginPolling bool
+	loginStatus  string
+
 	// Batch Download
 	batchDownloading bool
 	batchProgress    string
@@ -103,12 +112,18 @@ func NewModel(store *storage.Storage, client *crawler.Client) Model {
 	sp.Spinner = spinner.Dot
 	sp.Style = lipgloss.NewStyle().Foreground(colorAccent)
 
+	cookieIn := textinput.New()
+	cookieIn.Placeholder = "粘贴浏览器 Cookie (如 sessionid=...)"
+	cookieIn.CharLimit = 1024
+	cookieIn.Width = 60
+
 	return Model{
 		state:          StateShelf,
 		store:          store,
 		client:         client,
 		textInput:      ti,
 		tocSearchInput: tocInput,
+		cookieInput:    cookieIn,
 		spinner:        sp,
 		rankCategories: crawler.DefaultRankCategories,
 		stealthMode:    masquerade.ModeClassic,
@@ -122,8 +137,25 @@ func NewModel(store *storage.Storage, client *crawler.Client) Model {
 func (m Model) Init() tea.Cmd {
 	return tea.Batch(
 		m.loadBooksCmd(),
+		m.loadPersistedUserCmd(),
 		m.spinner.Tick,
 	)
+}
+
+func (m Model) loadPersistedUserCmd() tea.Cmd {
+	return func() tea.Msg {
+		cookie, err := m.store.GetConfig("auth_cookie")
+		if err == nil && cookie != "" {
+			m.client.SetCookie(cookie)
+			ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+			defer cancel()
+			u, err := m.client.GetUserInfo(ctx, cookie)
+			if err == nil && u != nil {
+				return userLoadedMsg{user: u, cookie: cookie}
+			}
+		}
+		return userLoadedMsg{user: nil, cookie: ""}
+	}
 }
 
 func (m Model) loadBooksCmd() tea.Cmd {
@@ -235,6 +267,37 @@ func (m Model) loadRankCmd(catIdx int) tea.Cmd {
 	}
 }
 
+func (m Model) startQRLoginCmd() tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		ticket, err := m.client.GetLoginQRCode(ctx)
+		return qrCodeReceivedMsg{ticket: ticket, err: err}
+	}
+}
+
+func qrPollTicker() tea.Cmd {
+	return tea.Tick(2000*time.Millisecond, func(t time.Time) tea.Msg {
+		return qrPollTickMsg{}
+	})
+}
+
+func (m Model) verifyAndSaveCookieCmd(cookieStr string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		user, err := m.client.GetUserInfo(ctx, cookieStr)
+		if err != nil {
+			return errMsg{err: fmt.Errorf("Cookie 验证失败或已过期: %w", err)}
+		}
+		_ = m.store.SaveConfig("auth_cookie", cookieStr)
+		m.client.SetCookie(cookieStr)
+		return loginSuccessMsg{user: user, cookie: cookieStr}
+	}
+}
+
 func autoScrollTicker() tea.Cmd {
 	return tea.Tick(2000*time.Millisecond, func(t time.Time) tea.Msg {
 		return autoScrollTickMsg{}
@@ -339,6 +402,66 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.statusMsg = fmt.Sprintf("排行榜加载成功，共 %d 本热门小说", len(msg.books))
 		}
 
+	case userLoadedMsg:
+		m.currentUser = msg.user
+
+	case qrCodeReceivedMsg:
+		if msg.err != nil {
+			m.loginStatus = fmt.Sprintf("获取二维码失败: %v", msg.err)
+			m.loginPolling = false
+		} else {
+			m.authTicket = msg.ticket
+			m.loginPolling = true
+			m.loginStatus = "请使用【抖音 / 番茄小说 APP】扫描下方二维码并在手机上确认"
+			return m, qrPollTicker()
+		}
+
+	case qrPollTickMsg:
+		if m.state == StateLogin && m.loginPolling && m.authTicket != nil {
+			return m, func() tea.Msg {
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				status, cookieStr, err := m.client.CheckQRConnect(ctx, m.authTicket.Token)
+				if err == nil {
+					if status == "confirmed" {
+						_ = m.store.SaveConfig("auth_cookie", cookieStr)
+						m.client.SetCookie(cookieStr)
+						u, _ := m.client.GetUserInfo(ctx, cookieStr)
+						if u == nil {
+							u = &crawler.UserInfo{Name: "番茄书友", IsVIP: true}
+						}
+						return loginSuccessMsg{user: u, cookie: cookieStr}
+					}
+					if strings.Contains(status, "scan") {
+						return qrCodeReceivedMsg{ticket: m.authTicket, err: nil}
+					}
+				}
+				return qrPollTickMsg{}
+			}
+		}
+
+	case loginSuccessMsg:
+		m.currentUser = msg.user
+		m.loginPolling = false
+		m.state = StateShelf
+		vipTag := ""
+		if msg.user != nil && msg.user.IsVIP {
+			vipTag = " [VIP 会员]"
+		}
+		userName := "用户"
+		if msg.user != nil && msg.user.Name != "" {
+			userName = msg.user.Name
+		}
+		m.statusMsg = fmt.Sprintf("🎉 登录成功！欢迎回来，%s%s", userName, vipTag)
+		return m, m.loadBooksCmd()
+
+	case errMsg:
+		m.statusMsg = fmt.Sprintf("❌ %v", msg.err)
+		if m.state == StateLogin {
+			m.loginStatus = fmt.Sprintf("❌ %v", msg.err)
+		}
+
 	case autoScrollTickMsg:
 		if m.state == StateReader && m.autoScroll {
 			if m.stealthMode == masquerade.ModeStatusLine {
@@ -374,6 +497,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateBookDetail(msg)
 		case StateRank:
 			return m.updateRank(msg)
+		case StateLogin:
+			return m.updateLogin(msg)
 		case StateToc:
 			return m.updateToc(msg)
 		case StateReader:
@@ -385,6 +510,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if m.state == StateAddBook {
 		var cmd tea.Cmd
 		m.textInput, cmd = m.textInput.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+	if m.state == StateLogin && m.loginMode == 1 {
+		var cmd tea.Cmd
+		m.cookieInput, cmd = m.cookieInput.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 	if m.state == StateToc && m.tocSearching {
@@ -423,6 +553,19 @@ func (m Model) updateShelf(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.state = StateRank
 		m.statusMsg = "正在拉取番茄排行榜..."
 		return m, m.loadRankCmd(m.rankCategoryIdx)
+	case "L", "l":
+		if m.currentUser != nil {
+			_ = m.store.DeleteConfig("auth_cookie")
+			m.client.SetCookie("")
+			m.currentUser = nil
+			m.statusMsg = "已成功退出登录并清除本地凭证"
+			return m, nil
+		}
+		m.state = StateLogin
+		m.loginMode = 0
+		m.loginPolling = true
+		m.loginStatus = "正在向番茄官网请求登录二维码..."
+		return m, m.startQRLoginCmd()
 	case "a", "/":
 		m.state = StateAddBook
 		m.textInput.SetValue("")
@@ -462,6 +605,55 @@ func (m Model) updateBookDetail(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.statusMsg = "正在后台批量缓存接下来 20 章..."
 			return m, m.startBatchDownloadCmd(m.currentBook.BookID, m.currentBook.LastReadIndex, 20)
 		}
+	}
+	return m, nil
+}
+
+func (m Model) updateLogin(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc":
+		m.state = StateShelf
+		m.loginPolling = false
+		return m, m.loadBooksCmd()
+
+	case "c":
+		m.loginMode = 1
+		m.loginPolling = false
+		m.cookieInput.SetValue("")
+		m.cookieInput.Focus()
+		return m, textinput.Blink
+
+	case "s":
+		m.loginMode = 0
+		m.loginPolling = true
+		m.loginStatus = "正在刷新登录二维码..."
+		return m, m.startQRLoginCmd()
+
+	case "ctrl+v":
+		if m.loginMode == 1 {
+			text, err := clipboard.ReadAll()
+			if err == nil && text != "" {
+				m.cookieInput.SetValue(strings.TrimSpace(text))
+				m.cookieInput.SetCursor(len(m.cookieInput.Value()))
+			}
+			return m, nil
+		}
+
+	case "enter":
+		if m.loginMode == 1 {
+			cookieStr := strings.TrimSpace(m.cookieInput.Value())
+			if cookieStr == "" {
+				return m, nil
+			}
+			m.loginStatus = "正在校验 Cookie 有效性..."
+			return m, m.verifyAndSaveCookieCmd(cookieStr)
+		}
+	}
+
+	if m.loginMode == 1 {
+		var cmd tea.Cmd
+		m.cookieInput, cmd = m.cookieInput.Update(msg)
+		return m, cmd
 	}
 	return m, nil
 }
@@ -819,6 +1011,8 @@ func (m Model) View() string {
 		return m.viewBookDetail()
 	case StateRank:
 		return m.viewRank()
+	case StateLogin:
+		return m.viewLogin()
 	case StateAddBook:
 		return m.viewAddBook()
 	case StateToc:
@@ -836,11 +1030,23 @@ func (m Model) View() string {
 func (m Model) viewHeader() string {
 	brand := badgeBrand.Render("🍅 FQSTORY")
 	title := headerTitleStyle.Render("番茄小说 · 极速摸鱼阅读器")
+
+	var userBadge string
+	if m.currentUser != nil {
+		vipTag := ""
+		if m.currentUser.IsVIP {
+			vipTag = " [VIP]"
+		}
+		userBadge = lipgloss.NewStyle().Bold(true).Foreground(colorWhite).Background(colorPurple).Padding(0, 1).MarginLeft(1).Render("👤 " + m.currentUser.Name + vipTag)
+	} else {
+		userBadge = headerPillStyle.Render("👤 未登录 (按 L 登录)")
+	}
+
 	bookCount := headerPillStyle.Render(fmt.Sprintf("📚 书库: %d 本", len(m.books)))
 	stealthPill := headerPillStyle.Render("🛡️ 摸鱼守护: 已就绪")
 
 	left := lipgloss.JoinHorizontal(lipgloss.Center, brand, title)
-	right := lipgloss.JoinHorizontal(lipgloss.Center, bookCount, stealthPill)
+	right := lipgloss.JoinHorizontal(lipgloss.Center, userBadge, bookCount, stealthPill)
 
 	gapWidth := m.width - lipgloss.Width(left) - lipgloss.Width(right) - 4
 	if gapWidth < 1 {
@@ -852,6 +1058,11 @@ func (m Model) viewHeader() string {
 }
 
 func (m Model) viewFooter() string {
+	loginDesc := "登录"
+	if m.currentUser != nil {
+		loginDesc = "登出"
+	}
+
 	keys := []struct {
 		key  string
 		desc string
@@ -859,6 +1070,7 @@ func (m Model) viewFooter() string {
 		{"Enter", "立即开读"},
 		{"r", "热门榜单"},
 		{"a", "导入新书"},
+		{"L", loginDesc},
 		{"i", "完整详情"},
 		{"d", "移出书架"},
 		{"q", "退出"},
@@ -1126,6 +1338,55 @@ func (m Model) viewRank() string {
 	)
 	b.WriteString(keys)
 	return b.String()
+}
+
+func (m Model) viewLogin() string {
+	if m.loginMode == 1 {
+		// Paste Cookie mode
+		header := headerTitleStyle.Render("🍪 粘贴 Cookie 登录")
+		tip := dimStyle.Render("在浏览器打开 fanqienovel.com 登录后，从控制台/Network 中复制完整 Cookie：")
+		keys := lipgloss.JoinHorizontal(lipgloss.Center,
+			keyCapKey.Render("Enter"), " ", keyCapDesc.Render("验证并登录"),
+			keyCapKey.Render("Ctrl+V"), " ", keyCapDesc.Render("一键粘贴"),
+			keyCapKey.Render("s"), " ", keyCapDesc.Render("切换扫码"),
+			keyCapKey.Render("Esc"), " ", keyCapDesc.Render("取消返回"),
+		)
+		statusLine := lipgloss.NewStyle().Foreground(colorCyan).Render(m.loginStatus)
+		content := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s\n\n%s", header, tip, m.cookieInput.View(), statusLine, keys)
+		return cardActiveBoxStyle.Width(min(72, m.width-4)).Render(content)
+	}
+
+	// QR Code Scan mode (Default)
+	header := headerTitleStyle.Render("📱 抖音 / 番茄小说 App 扫码登录")
+	tip := lipgloss.NewStyle().Foreground(colorGold).Render("请打开【抖音 APP】或【番茄小说 APP】扫描下方二维码：")
+
+	qrContent := "正在获取登录二维码..."
+	if m.authTicket != nil && m.authTicket.QRArt != "" {
+		qrContent = m.authTicket.QRArt
+	}
+
+	qrBox := lipgloss.NewStyle().
+		Background(lipgloss.Color("#ffffff")).
+		Foreground(lipgloss.Color("#000000")).
+		Padding(0, 1).
+		Align(lipgloss.Center).
+		Render(qrContent)
+
+	statusLine := lipgloss.NewStyle().Foreground(colorCyan).Render("状态: " + m.loginStatus)
+
+	var fileTip string
+	if m.authTicket != nil && m.authTicket.ImagePath != "" {
+		fileTip = dimStyle.Render("二维码已保存至: " + m.authTicket.ImagePath)
+	}
+
+	keys := lipgloss.JoinHorizontal(lipgloss.Center,
+		keyCapKey.Render("c"), " ", keyCapDesc.Render("粘贴Cookie登录"),
+		keyCapKey.Render("s"), " ", keyCapDesc.Render("刷新二维码"),
+		keyCapKey.Render("Esc"), " ", keyCapDesc.Render("取消返回"),
+	)
+
+	body := fmt.Sprintf("%s\n\n%s\n\n%s\n\n%s\n%s\n\n%s", header, tip, qrBox, statusLine, fileTip, keys)
+	return cardActiveBoxStyle.Width(min(76, m.width-4)).Render(body)
 }
 
 func (m Model) viewAddBook() string {

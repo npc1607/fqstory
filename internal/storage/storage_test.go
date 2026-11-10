@@ -73,4 +73,18 @@ func TestStorageMemory(t *testing.T) {
 	if got3 != nil {
 		t.Fatalf("expected book to be deleted")
 	}
+
+	// 6. Test Config
+	if err := s.SaveConfig("auth_cookie", "sessionid=test1234"); err != nil {
+		t.Fatalf("SaveConfig failed: %v", err)
+	}
+	cfg, err := s.GetConfig("auth_cookie")
+	if err != nil || cfg != "sessionid=test1234" {
+		t.Fatalf("GetConfig failed: %v, got %s", err, cfg)
+	}
+	_ = s.DeleteConfig("auth_cookie")
+	cfg2, _ := s.GetConfig("auth_cookie")
+	if cfg2 != "" {
+		t.Fatalf("expected empty config after delete, got %s", cfg2)
+	}
 }
