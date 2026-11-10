@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="100%" height="100%">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.07"/>
+    </filter>
+    <filter id="red-shadow" x="-4%" y="-4%" width="108%" height="108%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#e03131" flood-opacity="0.12"/>
+    </filter>
+    <filter id="sketch-filter" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <pattern id="pattern-hachure" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#495057" stroke-width="1.2"/>
+    </pattern>
+    <pattern id="bg-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#cbd5e1" opacity="0.65"/>
+    </pattern>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 Z" fill="#495057" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 Z" fill="#e03131" />
+    </marker>
+    <marker id="arrow-open" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5" fill="none" stroke="#495057" stroke-width="1.8"/>
+    </marker>
+    <marker id="arrow-hollow-triangle" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse">
+      <polygon points="0,1.5 10.5,6 0,10.5" fill="#ffffff" stroke="#495057" stroke-width="1.8"/>
+    </marker>
+    <marker id="arrow-filled-diamond" markerWidth="14" markerHeight="12" refX="12" refY="6" orient="auto-start-reverse">
+      <polygon points="0,6 6,1.5 12,6 6,10.5" fill="#495057" stroke="#495057" stroke-width="1.4"/>
+    </marker>
+    <marker id="arrow-hollow-diamond" markerWidth="14" markerHeight="12" refX="12" refY="6" orient="auto-start-reverse">
+      <polygon points="0,6 6,1.5 12,6 6,10.5" fill="#ffffff" stroke="#495057" stroke-width="1.6"/>
+    </marker>
+    <marker id="arrow-circle" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="3.5" fill="#495057"/>
+    </marker>
+    <style>
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-weight: 800; fill: #1e1e1e; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 500; fill: #495057; }
+      .group-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 700; font-size: 13px; }
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 700; font-size: 19px; }
+      .node-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 700; font-size: 16px; }
+      .card-sub { font-family: "SF Mono", "Consolas", Menlo, monospace; font-size: 13px; }
+      .mono-text { font-family: "SF Mono", "Consolas", Menlo, monospace; font-size: 13px; }
+      .card-item { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 14.5px; }
+      .tag-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 12.5px; font-weight: 600; fill: #495057; text-anchor: middle; }
+      .cfg-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 12.5px; font-weight: 700; fill: #c92a2a; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#ffffff" rx="14"/>
+  <rect width="100%" height="100%" fill="url(#bg-grid)" rx="14"/>
+
+  <g transform="translate(600, 48)" text-anchor="middle">
+    <text class="title" font-size="28" y="0">fqstory - 系统分层架构与数据流向</text>
+    <text class="subtitle" font-size="15" y="28">Go 终端应用架构：UI表现层、摸鱼引擎、业务领域层、离线存储与爬虫协议层</text>
+  </g>
+
+  <!-- Groups / Swimlanes -->
+  
+    <g transform="translate(40, 110)">
+      <rect width="1120" height="140" rx="12" fill="#edf2ff" fill-opacity="0.55" stroke="#4263eb" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="478" height="26" rx="6" fill="#edf2ff" stroke="#4263eb" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#364fc7">1. TUI 表现层 (Presentation Layer - Bubbletea &amp; Lipgloss)</text>
+    </g>
+
+    <g transform="translate(40, 270)">
+      <rect width="1120" height="130" rx="12" fill="#e6fcf5" fill-opacity="0.55" stroke="#099268" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="418" height="26" rx="6" fill="#e6fcf5" stroke="#099268" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#087f5b">2. 摸鱼伪装与渲染管道 (Stealth Masquerade Pipeline)</text>
+    </g>
+
+    <g transform="translate(40, 420)">
+      <rect width="1120" height="130" rx="12" fill="#e7f5ff" fill-opacity="0.55" stroke="#1971c2" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="402" height="26" rx="6" fill="#e7f5ff" stroke="#1971c2" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#1864ab">3. 业务调度与状态引擎 (Domain &amp; State Management)</text>
+    </g>
+
+    <g transform="translate(40, 570)">
+      <rect width="1120" height="120" rx="12" fill="#f1f5f9" fill-opacity="0.55" stroke="#475569" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="416" height="26" rx="6" fill="#f1f5f9" stroke="#475569" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#0f172a">4. 基础设施与数据提供层 (Infrastructure &amp; Provider)</text>
+    </g>
+
+  <!-- Sequence Lifelines -->
+  
+
+  <!-- Sequence Fragments -->
+  
+  <!-- Nodes & Cards -->
+  
+    <g transform="translate(70, 150)" filter="url(#shadow)" >
+      <rect width="240" height="70" rx="12" fill="#edf2ff" stroke="#4263eb" stroke-width="2" />
+      
+      <text class="node-title" x="120" y="32" text-anchor="middle" fill="#364fc7">Shelf Model</text>
+      <text class="card-sub" x="120" y="52" text-anchor="middle" fill="#495057">书架列表 / 进度标识</text>
+    </g>
+
+    <g transform="translate(340, 150)" filter="url(#shadow)" >
+      <rect width="240" height="70" rx="12" fill="#edf2ff" stroke="#4263eb" stroke-width="2" />
+      
+      <text class="node-title" x="120" y="32" text-anchor="middle" fill="#364fc7">Search Model</text>
+      <text class="card-sub" x="120" y="52" text-anchor="middle" fill="#495057">模糊搜索 / 榜单浏览</text>
+    </g>
+
+    <g transform="translate(610, 150)" filter="url(#shadow)" >
+      <rect width="240" height="70" rx="12" fill="#edf2ff" stroke="#4263eb" stroke-width="2" />
+      
+      <text class="node-title" x="120" y="32" text-anchor="middle" fill="#364fc7">Reader Viewport</text>
+      <text class="card-sub" x="120" y="52" text-anchor="middle" fill="#495057">滚动排版 / 翻页控制</text>
+    </g>
+
+    <g transform="translate(880, 150)" filter="url(#shadow)" >
+      <rect width="240" height="70" rx="12" fill="#edf2ff" stroke="#4263eb" stroke-width="2" />
+      
+      <text class="node-title" x="120" y="32" text-anchor="middle" fill="#364fc7">Boss Key Overlay</text>
+      <text class="card-sub" x="120" y="52" text-anchor="middle" fill="#495057">伪装终端全屏接管</text>
+    </g>
+
+    <g transform="translate(120, 305)" filter="url(#shadow)" >
+      <rect width="270" height="65" rx="12" fill="#e6fcf5" stroke="#099268" stroke-width="2" />
+      
+      <text class="node-title" x="135" y="29.5" text-anchor="middle" fill="#087f5b">LogFormatter</text>
+      <text class="card-sub" x="135" y="49.5" text-anchor="middle" fill="#495057">微服务日志包装器</text>
+    </g>
+
+    <g transform="translate(460, 305)" filter="url(#shadow)" >
+      <rect width="270" height="65" rx="12" fill="#e6fcf5" stroke="#099268" stroke-width="2" />
+      
+      <text class="node-title" x="135" y="29.5" text-anchor="middle" fill="#087f5b">CodeCommenter</text>
+      <text class="card-sub" x="135" y="49.5" text-anchor="middle" fill="#495057">代码注释与AST模拟</text>
+    </g>
+
+    <g transform="translate(800, 305)" filter="url(#shadow)" >
+      <rect width="270" height="65" rx="12" fill="#e6fcf5" stroke="#099268" stroke-width="2" />
+      
+      <text class="node-title" x="135" y="29.5" text-anchor="middle" fill="#087f5b">SysOutputSimulator</text>
+      <text class="card-sub" x="135" y="49.5" text-anchor="middle" fill="#495057">假测试/编译/htop输出</text>
+    </g>
+
+    <g transform="translate(120, 455)" filter="url(#shadow)" >
+      <rect width="270" height="65" rx="12" fill="#e7f5ff" stroke="#1971c2" stroke-width="2" />
+      
+      <text class="node-title" x="135" y="29.5" text-anchor="middle" fill="#1864ab">BookStateManager</text>
+      <text class="card-sub" x="135" y="49.5" text-anchor="middle" fill="#495057">当前章节/段落偏移量</text>
+    </g>
+
+    <g transform="translate(460, 455)" filter="url(#shadow)" >
+      <rect width="270" height="65" rx="12" fill="#e7f5ff" stroke="#1971c2" stroke-width="2" />
+      
+      <text class="node-title" x="135" y="29.5" text-anchor="middle" fill="#1864ab">BackgroundPrefetcher</text>
+      <text class="card-sub" x="135" y="49.5" text-anchor="middle" fill="#495057">智能预读队列 (后5章)</text>
+    </g>
+
+    <g transform="translate(800, 455)" filter="url(#shadow)" >
+      <rect width="270" height="65" rx="12" fill="#e7f5ff" stroke="#1971c2" stroke-width="2" />
+      
+      <text class="node-title" x="135" y="29.5" text-anchor="middle" fill="#1864ab">FontDecryptor</text>
+      <text class="card-sub" x="135" y="49.5" text-anchor="middle" fill="#495057">PUA 映射/字库解码</text>
+    </g>
+
+    <g transform="translate(140, 590)" filter="url(#shadow)" >
+      <path d="M 0 13 L 0 67 A 120 13 0 0 0 240 67 L 240 13 Z" fill="#f1f5f9" stroke="#475569" stroke-width="2" />
+      <ellipse cx="120" cy="13" rx="120" ry="13" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+      <text class="node-title" x="120" y="42" text-anchor="middle" fill="#0f172a">SQLite / 本地数据库</text>
+      <text class="card-sub" x="120" y="62" text-anchor="middle" fill="#64748b">书架 / 历史 / 离线缓存</text>
+    </g>
+
+    <g transform="translate(480, 600)" filter="url(#shadow)" >
+      <rect width="240" height="65" rx="12" fill="#f1f5f9" stroke="#475569" stroke-width="2" />
+      
+      <text class="node-title" x="120" y="29.5" text-anchor="middle" fill="#0f172a">Fanqie API Client</text>
+      <text class="card-sub" x="120" y="49.5" text-anchor="middle" fill="#64748b">APP 网关 / Web 搜索</text>
+    </g>
+
+    <g transform="translate(810, 600)" filter="url(#shadow)" >
+      <rect width="240" height="65" rx="12" fill="#f1f5f9" stroke="#475569" stroke-width="2" />
+      
+      <text class="node-title" x="120" y="29.5" text-anchor="middle" fill="#0f172a">Local TXT/EPUB Driver</text>
+      <text class="card-sub" x="120" y="49.5" text-anchor="middle" fill="#64748b">离线无网导入兜底</text>
+    </g>
+
+  <!-- Edges & Arrows -->
+  
+    <g>
+      <path d="M 610 185 L 500 185 L 500 337.5 L 390 337.5" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 1000 220 L 1000 262.5 L 935 262.5 L 935 305" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 255 370 L 255 412.5 L 255 412.5 L 255 455" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 390 487.5 L 460 487.5" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 460 487.5 L 420 487.5 L 420 630 L 380 630" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 595 520 L 595 560 L 600 560 L 600 600" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 720 632.5 L 800 487.5" fill="none" stroke="#495057" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+  <!-- Sequence Messages -->
+  
+
+  <!-- Config Banners -->
+  
+</svg>

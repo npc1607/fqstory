@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="100%" height="100%">
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.07"/>
+    </filter>
+    <filter id="red-shadow" x="-4%" y="-4%" width="108%" height="108%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#e03131" flood-opacity="0.12"/>
+    </filter>
+    <filter id="sketch-filter" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <pattern id="pattern-hachure" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#334155" stroke-width="1.2"/>
+    </pattern>
+    <pattern id="bg-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#cbd5e1" opacity="0.65"/>
+    </pattern>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 Z" fill="#334155" />
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8.5 5 L 0 8.5 Z" fill="#e03131" />
+    </marker>
+    <marker id="arrow-open" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse">
+      <path d="M 1 1.5 L 8.5 5 L 1 8.5" fill="none" stroke="#334155" stroke-width="1.8"/>
+    </marker>
+    <marker id="arrow-hollow-triangle" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto-start-reverse">
+      <polygon points="0,1.5 10.5,6 0,10.5" fill="#f8fafc" stroke="#334155" stroke-width="1.8"/>
+    </marker>
+    <marker id="arrow-filled-diamond" markerWidth="14" markerHeight="12" refX="12" refY="6" orient="auto-start-reverse">
+      <polygon points="0,6 6,1.5 12,6 6,10.5" fill="#334155" stroke="#334155" stroke-width="1.4"/>
+    </marker>
+    <marker id="arrow-hollow-diamond" markerWidth="14" markerHeight="12" refX="12" refY="6" orient="auto-start-reverse">
+      <polygon points="0,6 6,1.5 12,6 6,10.5" fill="#f8fafc" stroke="#334155" stroke-width="1.6"/>
+    </marker>
+    <marker id="arrow-circle" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <circle cx="5" cy="5" r="3.5" fill="#334155"/>
+    </marker>
+    <style>
+      .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; font-weight: 800; fill: #0f172a; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 500; fill: #475569; }
+      .group-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 700; font-size: 13px; }
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 700; font-size: 19px; }
+      .node-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-weight: 700; font-size: 16px; }
+      .card-sub { font-family: "SF Mono", "Consolas", Menlo, monospace; font-size: 13px; }
+      .mono-text { font-family: "SF Mono", "Consolas", Menlo, monospace; font-size: 13px; }
+      .card-item { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 14.5px; }
+      .tag-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 12.5px; font-weight: 600; fill: #0f172a; text-anchor: middle; }
+      .cfg-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 12.5px; font-weight: 700; fill: #c92a2a; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#f8fafc" rx="14"/>
+  <rect width="100%" height="100%" fill="url(#bg-grid)" rx="14"/>
+
+  <g transform="translate(600, 48)" text-anchor="middle">
+    <text class="title" font-size="28" y="0">fqstory - 番茄小说 Go TUI 摸鱼阅读器 交互与状态流转</text>
+    <text class="subtitle" font-size="15" y="28">基于 Charm Bubbletea 的状态流转、摸鱼伪装矩阵与老板键应急机制</text>
+  </g>
+
+  <!-- Groups / Swimlanes -->
+  
+    <g transform="translate(40, 110)">
+      <rect width="320" height="560" rx="6" fill="#e7f5ff" fill-opacity="0.55" stroke="#1971c2" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="150" height="26" rx="6" fill="#e7f5ff" stroke="#1971c2" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#1864ab">1. 导航与书库管理</text>
+    </g>
+
+    <g transform="translate(390, 110)">
+      <rect width="420" height="560" rx="6" fill="#e6fcf5" fill-opacity="0.55" stroke="#099268" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="250" height="26" rx="6" fill="#e6fcf5" stroke="#099268" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#087f5b">2. 核心阅读器 (Reader Engine)</text>
+    </g>
+
+    <g transform="translate(840, 110)">
+      <rect width="320" height="560" rx="6" fill="#edf2ff" fill-opacity="0.55" stroke="#4263eb" stroke-width="1.8" stroke-dasharray="6,5"/>
+      
+      <rect x="14" y="-13" width="318" height="26" rx="6" fill="#edf2ff" stroke="#4263eb" stroke-width="1.5"/>
+      <text class="group-title" x="26" y="4" fill="#364fc7">3. 摸鱼特化伪装层 (Stealth Masquerade)</text>
+    </g>
+
+  <!-- Sequence Lifelines -->
+  
+
+  <!-- Sequence Fragments -->
+  
+  <!-- Nodes & Cards -->
+  
+    <g transform="translate(70, 160)"  >
+      <rect width="260" height="244" rx="6" fill="#e7f5ff" stroke="#1971c2" stroke-width="2" />
+      
+      <text class="card-title" x="130" y="36" text-anchor="middle" fill="#1864ab">书架视图 (ShelfView)</text>
+      <text class="card-sub" x="130" y="56" text-anchor="middle" fill="#495057">默认启动入口</text>
+      <line x1="25" y1="72" x2="235" y2="72" stroke="#a5d8ff" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <g class="card-item" transform="translate(24, 102)">
+        <text y="0" fill="#1e293b">• 展示历史书架 / 最近阅读</text>
+        <text y="28" fill="#1e293b">• 实时章节更新红点</text>
+        <text y="56" fill="#1e293b">• [Enter] 进入上次阅读</text>
+        <text y="84" fill="#1e293b">• [/] 切换搜索模式</text>
+        <text y="112" fill="#1e293b">• [d] 移出书架 / [r] 刷新</text>
+      </g>
+    </g>
+
+    <g transform="translate(70, 340)"  >
+      <rect width="260" height="216" rx="6" fill="#f1f5f9" stroke="#475569" stroke-width="2" />
+      
+      <text class="card-title" x="130" y="36" text-anchor="middle" fill="#0f172a">全网搜索 (SearchView)</text>
+      <text class="card-sub" x="130" y="56" text-anchor="middle" fill="#64748b">番茄 API 聚合检索</text>
+      <line x1="25" y1="72" x2="235" y2="72" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <g class="card-item" transform="translate(24, 102)">
+        <text y="0" fill="#1e293b">• 输入书名 / 作者关键词</text>
+        <text y="28" fill="#1e293b">• 展示排行榜与热门推荐</text>
+        <text y="56" fill="#1e293b">• [Enter] 展开书籍详情/目录</text>
+        <text y="84" fill="#1e293b">• [a] 加入书架</text>
+      </g>
+    </g>
+
+    <g transform="translate(70, 500)"  >
+      <rect width="260" height="216" rx="6" fill="#f1f5f9" stroke="#475569" stroke-width="2" />
+      
+      <text class="card-title" x="130" y="36" text-anchor="middle" fill="#0f172a">目录导引 (TocView)</text>
+      <text class="card-sub" x="130" y="56" text-anchor="middle" fill="#64748b">章节树与倒序支持</text>
+      <line x1="25" y1="72" x2="235" y2="72" stroke="#cbd5e1" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <g class="card-item" transform="translate(24, 102)">
+        <text y="0" fill="#1e293b">• 快速定位目标章节</text>
+        <text y="28" fill="#1e293b">• [j/k] 上下翻动章节</text>
+        <text y="56" fill="#1e293b">• [/] 章节内标题过滤</text>
+        <text y="84" fill="#1e293b">• [g/G] 顶部/底部直达</text>
+      </g>
+    </g>
+
+    <g transform="translate(420, 160)"  >
+      <rect width="360" height="272" rx="6" fill="#e6fcf5" stroke="#099268" stroke-width="2" />
+      
+      <text class="card-title" x="180" y="36" text-anchor="middle" fill="#087f5b">多模态阅读器 (ReaderView)</text>
+      <text class="card-sub" x="180" y="56" text-anchor="middle" fill="#495057">Bubbletea Viewport</text>
+      <line x1="25" y1="72" x2="335" y2="72" stroke="#96f2d7" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <g class="card-item" transform="translate(24, 102)">
+        <text y="0" fill="#1e293b">• 自适应终端宽度折行与排版</text>
+        <text y="28" fill="#1e293b">• 平滑滚动 [j/k/d/u]</text>
+        <text y="56" fill="#1e293b">• 后台无感预加载后 5 章</text>
+        <text y="84" fill="#1e293b">• 实时记录段落级阅读偏移量</text>
+        <text y="112" fill="#1e293b">• [m] 循环切换摸鱼伪装模式</text>
+        <text y="140" fill="#1e293b">• [b / Esc] 触发老板键</text>
+      </g>
+    </g>
+
+    <g transform="translate(440, 330)"  >
+      <rect width="320" height="64" rx="6" fill="#f4f4f5" stroke="#52525b" stroke-width="2" />
+      
+      <text class="node-title" x="160" y="29" text-anchor="middle" fill="#18181b">A. 经典阅读 (Classic)</text>
+      <text class="card-sub" x="160" y="49" text-anchor="middle" fill="#71717a">极简暗色终端，低对比度</text>
+    </g>
+
+    <g transform="translate(440, 410)"  >
+      <rect width="320" height="64" rx="6" fill="#ebfbee" stroke="#0ca678" stroke-width="2" />
+      
+      <text class="node-title" x="160" y="29" text-anchor="middle" fill="#087f5b">B. 日志伪装 (Log Stream) ★</text>
+      <text class="card-sub" x="160" y="49" text-anchor="middle" fill="#495057">格式化为 [INFO] 后端日志，自动滚屏</text>
+    </g>
+
+    <g transform="translate(440, 490)"  >
+      <rect width="320" height="64" rx="6" fill="#e3fafc" stroke="#0c8599" stroke-width="2" />
+      
+      <text class="node-title" x="160" y="29" text-anchor="middle" fill="#0b7285">C. 代码注释 (Code Comment)</text>
+      <text class="card-sub" x="160" y="49" text-anchor="middle" fill="#495057">伪装为 Go/Rust 代码注释段落</text>
+    </g>
+
+    <g transform="translate(440, 570)"  >
+      <rect width="320" height="64" rx="6" fill="#fff9db" stroke="#f08c00" stroke-width="2" />
+      
+      <text class="node-title" x="160" y="29" text-anchor="middle" fill="#e67700">D. 极简单行 (Status Line)</text>
+      <text class="card-sub" x="160" y="49" text-anchor="middle" fill="#495057">仅占底栏 1 行，其余为假终端</text>
+    </g>
+
+    <g transform="translate(890, 160)"  >
+      <polygon points="110,0 220,50 110,100 0,50" fill="#fff5f5" stroke="#e03131" stroke-width="2" />
+      <text class="node-title" x="110" y="48" text-anchor="middle" fill="#c92a2a">老板键 (Boss Key)</text>
+      <text class="card-sub" x="110" y="66" text-anchor="middle" fill="#495057">按 [b] / [Esc] 触发</text>
+    </g>
+
+    <g transform="translate(870, 310)"  >
+      <rect width="260" height="244" rx="6" fill="#f1f3f5" stroke="#343a40" stroke-width="2" />
+      
+      <text class="card-title" x="130" y="36" text-anchor="middle" fill="#212529">假终端伪装屏幕</text>
+      <text class="card-sub" x="130" y="56" text-anchor="middle" fill="#495057">BossOverlay</text>
+      <line x1="25" y1="72" x2="235" y2="72" stroke="#ced4da" stroke-width="1.5" stroke-dasharray="4,4"/>
+      <g class="card-item" transform="translate(24, 102)">
+        <text y="0" fill="#1e293b">• 选项 1: go test -v 流式输出</text>
+        <text y="28" fill="#1e293b">• 选项 2: htop 动态伪监控</text>
+        <text y="56" fill="#1e293b">• 选项 3: git diff 假代码对比</text>
+        <text y="84" fill="#1e293b">• 选项 4: 挂起切出真实终端</text>
+        <text y="112" fill="#1e293b">• 按任意配置热键静默返回</text>
+      </g>
+    </g>
+
+    <g transform="translate(870, 510)"  >
+      <path d="M 0 13 L 0 97 A 130 13 0 0 0 260 97 L 260 13 Z" fill="#edf2ff" stroke="#4263eb" stroke-width="2" />
+      <ellipse cx="130" cy="13" rx="130" ry="13" fill="#edf2ff" stroke="#4263eb" stroke-width="2"/>
+      <text class="node-title" x="130" y="57" text-anchor="middle" fill="#364fc7">本地离线库 (SQLite)</text>
+      <text class="card-sub" x="130" y="77" text-anchor="middle" fill="#495057">离线章节 / 进度 / 密钥</text>
+    </g>
+
+  <!-- Edges & Arrows -->
+  
+    <g>
+      <path d="M 200 404 L 200 372 L 200 372 L 200 340" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="150.5" y="361" width="99" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="200" y="376" text-anchor="middle">按 [/] 搜索</text>
+    </g>
+
+    <g>
+      <path d="M 200 556 L 200 528 L 200 528 L 200 500" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="164" y="517" width="72" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="200" y="532" text-anchor="middle">查看目录</text>
+    </g>
+
+    <g>
+      <path d="M 330 608 L 375 608 L 375 296 L 420 296" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="339" y="441" width="72" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="375" y="456" text-anchor="middle">选中章节</text>
+    </g>
+
+    <g>
+      <path d="M 330 282 L 375 282 L 375 296 L 420 296" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="339" y="278" width="72" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="375" y="293" text-anchor="middle">继续阅读</text>
+    </g>
+
+    <g>
+      <path d="M 600 432 L 600 330" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="548" y="370" width="104" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="600" y="385" text-anchor="middle">模式切换 [m]</text>
+    </g>
+
+    <g>
+      <path d="M 600 394 L 600 410" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 600 474 L 600 490" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 600 554 L 600 570" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+    </g>
+
+    <g>
+      <path d="M 780 296 L 835 296 L 835 210 L 890 210" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="783" y="242" width="104" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="835" y="257" text-anchor="middle">[b] 紧急避险</text>
+    </g>
+
+    <g>
+      <path d="M 1000 260 L 1000 285 L 1000 285 L 1000 310" fill="none" stroke="#334155" stroke-width="2.1"   marker-end="url(#arrow-gray)"/>
+      
+      <rect x="957" y="274" width="86" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="1000" y="289" text-anchor="middle">瞬切假界面</text>
+    </g>
+
+    <g>
+      <path d="M 870 432 L 825 432 L 825 296 L 780 296" fill="none" stroke="#334155" stroke-width="2.1" stroke-dasharray="6,5"  marker-end="url(#arrow-gray)"/>
+      
+      <rect x="789" y="353" width="72" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="825" y="368" text-anchor="middle">再次唤醒</text>
+    </g>
+
+    <g>
+      <path d="M 780 296 L 825 296 L 825 565 L 870 565" fill="none" stroke="#334155" stroke-width="2.1" stroke-dasharray="6,5"  marker-end="url(#arrow-gray)"/>
+      
+      <rect x="762" y="419.5" width="126" height="22" rx="5" fill="#e2e8f0" stroke="#dee2e6"/>
+      <text class="tag-text" x="825" y="434.5" text-anchor="middle">实时进度自动落盘</text>
+    </g>
+
+  <!-- Sequence Messages -->
+  
+
+  <!-- Config Banners -->
+  
+</svg>
