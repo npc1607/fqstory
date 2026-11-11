@@ -6,7 +6,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-runewidth"
+)
+
+var (
+	// Realistic microservice / Spring Boot / Zap style logger colors
+	logTimeStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#64748b")) // muted slate
+	logPoolStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("#818cf8")) // lavender blue
+	logPkgStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#06b6d4")) // cyan
+	logSepStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("#475569")) // dark slate
+
+	logLvlInfo  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#22c55e")) // vibrant green
+	logLvlWarn  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#f59e0b")) // amber yellow
+	logLvlDebug = lipgloss.NewStyle().Foreground(lipgloss.Color("#0ea5e9"))           // light blue
+
+	logMsgStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("#f8fafc")) // crisp bright readable text
 )
 
 // Mode represents the rendering stealth mode.
@@ -144,8 +159,27 @@ func FormatLog(paragraphs []string, start time.Time, maxWidth int) string {
 		for _, sent := range sentences {
 			currTime = currTime.Add(time.Duration(600+r.Intn(1400)) * time.Millisecond)
 			timeStr := currTime.Format("2006-01-02 15:04:05.000")
-			prefix := fmt.Sprintf("%s [%s] [worker-pool-%02d] %s - ", timeStr, lvl, workerID, pkg)
-			prefixWidth := runewidth.StringWidth(prefix)
+
+			// Raw prefix for exact terminal column width calculation
+			rawPrefix := fmt.Sprintf("%s [%s] [worker-pool-%02d] %s - ", timeStr, lvl, workerID, pkg)
+			prefixWidth := runewidth.StringWidth(rawPrefix)
+
+			// Styled prefix with authentic enterprise colors
+			timeStyled := logTimeStyle.Render(timeStr)
+			var lvlStyled string
+			switch strings.TrimSpace(lvl) {
+			case "WARN":
+				lvlStyled = logLvlWarn.Render(lvl)
+			case "DEBUG":
+				lvlStyled = logLvlDebug.Render(lvl)
+			default:
+				lvlStyled = logLvlInfo.Render(lvl)
+			}
+			poolStyled := logPoolStyle.Render(fmt.Sprintf("[worker-pool-%02d]", workerID))
+			pkgStyled := logPkgStyle.Render(pkg)
+			sepStyled := logSepStyle.Render("-")
+
+			styledPrefix := fmt.Sprintf("%s %s %s %s %s ", timeStyled, lvlStyled, poolStyled, pkgStyled, sepStyled)
 
 			availWidth := maxWidth - prefixWidth
 			if availWidth < 20 {
@@ -154,14 +188,16 @@ func FormatLog(paragraphs []string, start time.Time, maxWidth int) string {
 
 			wrappedParts := WrapTextToWidth(sent, availWidth)
 			for partIdx, part := range wrappedParts {
+				msgText := logMsgStyle.Render(part)
 				if partIdx == 0 {
-					b.WriteString(fmt.Sprintf("%s%s\n", prefix, part))
+					b.WriteString(fmt.Sprintf("%s%s\n", styledPrefix, msgText))
 				} else {
 					// Continuation line with slight millisecond advance and ellipsis
 					currTime = currTime.Add(80 * time.Millisecond)
 					contTimeStr := currTime.Format("2006-01-02 15:04:05.000")
-					contPrefix := fmt.Sprintf("%s [%s] [worker-pool-%02d] %s - ...", contTimeStr, lvl, workerID, pkg)
-					b.WriteString(fmt.Sprintf("%s%s\n", contPrefix, part))
+					contTimeStyled := logTimeStyle.Render(contTimeStr)
+					contPrefix := fmt.Sprintf("%s %s %s %s %s ...", contTimeStyled, lvlStyled, poolStyled, pkgStyled, sepStyled)
+					b.WriteString(fmt.Sprintf("%s%s\n", contPrefix, msgText))
 				}
 			}
 		}
@@ -169,8 +205,19 @@ func FormatLog(paragraphs []string, start time.Time, maxWidth int) string {
 		// Every few paragraphs, insert an extra fake system debug log to increase authenticity
 		if i%4 == 3 {
 			currTime = currTime.Add(120 * time.Millisecond)
-			fakeHeartbeat := fmt.Sprintf("%s [DEBUG] [worker-pool-%02d] %s - sync buffer snapshot, batch_id=%x, pending=0\n",
-				currTime.Format("2006-01-02 15:04:05.000"), workerID, pkg, r.Int31())
+			timeStr := currTime.Format("2006-01-02 15:04:05.000")
+			timeStyled := logTimeStyle.Render(timeStr)
+			lvlStyled := logLvlDebug.Render("DEBUG")
+			poolStyled := logPoolStyle.Render(fmt.Sprintf("[worker-pool-%02d]", workerID))
+			pkgStyled := logPkgStyle.Render(pkg)
+			sepStyled := logSepStyle.Render("-")
+
+			paramKey := logTimeStyle.Render("sync buffer snapshot, batch_id=")
+			paramVal := logLvlWarn.Render(fmt.Sprintf("%x", r.Int31()))
+			paramPending := logTimeStyle.Render(", pending=0")
+
+			fakeHeartbeat := fmt.Sprintf("%s %s %s %s %s %s%s%s\n",
+				timeStyled, lvlStyled, poolStyled, pkgStyled, sepStyled, paramKey, paramVal, paramPending)
 			b.WriteString(fakeHeartbeat)
 		}
 	}
