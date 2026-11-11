@@ -8,18 +8,29 @@ import (
 
 func TestFormatLog(t *testing.T) {
 	paragraphs := []string{"第一段主角挥剑。", "第二段天地变色。"}
-	out := FormatLog(paragraphs, time.Now())
+	out := FormatLog(paragraphs, time.Now(), 120)
 	if !strings.Contains(out, "第一段主角挥剑。") {
 		t.Errorf("expected paragraph to be present in log format")
 	}
 	if !strings.Contains(out, "[worker-pool-") {
 		t.Errorf("expected worker pool prefix in log format")
 	}
+
+	// Test sentence splitting & wrapping for long paragraphs
+	longPara := []string{"两名老僧正直勾勾的盯着下方桃林里一个粉雕玉琢的小孩。在这两名老僧身边，还有一具黑袍尸体。"}
+	wrappedOut := FormatLog(longPara, time.Now(), 70)
+	t.Logf("wrappedOut:\n%s", wrappedOut)
+	if !strings.Contains(wrappedOut, "粉雕玉琢的小孩。") {
+		t.Errorf("expected long sentence to be fully preserved without truncation")
+	}
+	if !strings.Contains(wrappedOut, "还有一具黑袍尸体") {
+		t.Errorf("expected second sentence to be present in log")
+	}
 }
 
 func TestFormatCode(t *testing.T) {
 	paragraphs := []string{"主角破开大阵。"}
-	out := FormatCode(paragraphs, "order")
+	out := FormatCode(paragraphs, "order", 80)
 	if !strings.Contains(out, "package order") {
 		t.Errorf("expected package declaration")
 	}

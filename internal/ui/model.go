@@ -990,16 +990,21 @@ func (m *Model) renderCurrentChapterToViewport() {
 		return
 	}
 
+	maxWidth := m.viewport.Width
+	if maxWidth <= 0 {
+		maxWidth = max(40, m.width-4)
+	}
+
 	var formatted string
 	switch m.stealthMode {
 	case masquerade.ModeLog:
-		formatted = masquerade.FormatLog(m.currChapter.Paragraphs, time.Now())
+		formatted = masquerade.FormatLog(m.currChapter.Paragraphs, time.Now(), maxWidth)
 	case masquerade.ModeCode:
-		formatted = masquerade.FormatCode(m.currChapter.Paragraphs, "order")
+		formatted = masquerade.FormatCode(m.currChapter.Paragraphs, "order", maxWidth)
 	case masquerade.ModeClassic:
-		formatted = masquerade.FormatClassic(m.currChapter.Paragraphs)
+		formatted = masquerade.FormatClassic(m.currChapter.Paragraphs, maxWidth)
 	default:
-		formatted = masquerade.FormatClassic(m.currChapter.Paragraphs)
+		formatted = masquerade.FormatClassic(m.currChapter.Paragraphs, maxWidth)
 	}
 
 	m.viewport.SetContent(formatted)

@@ -5,6 +5,8 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // Mode represents the rendering stealth mode.
@@ -47,10 +49,82 @@ var logPackages = []string{
 
 var logLevels = []string{"INFO ", "INFO ", "INFO ", "DEBUG", "WARN "}
 
-// FormatLog wraps novel paragraphs as enterprise microservice logs.
-func FormatLog(paragraphs []string, start time.Time) string {
+// SplitIntoSentences splits a paragraph into natural Chinese/English sentences.
+func SplitIntoSentences(text string) []string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+
+	var sentences []string
+	var current []rune
+	runes := []rune(text)
+
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		current = append(current, r)
+
+		// Sentence delimiter: 。 ! ? ; …
+		if r == '。' || r == '！' || r == '？' || r == '；' || r == '…' {
+			// Check if following character is a closing quote: ” ' "
+			if i+1 < len(runes) && (runes[i+1] == '”' || runes[i+1] == '"' || runes[i+1] == '’' || runes[i+1] == '\'') {
+				current = append(current, runes[i+1])
+				i++
+			}
+			s := strings.TrimSpace(string(current))
+			if s != "" {
+				sentences = append(sentences, s)
+			}
+			current = nil
+		}
+	}
+
+	if len(current) > 0 {
+		s := strings.TrimSpace(string(current))
+		if s != "" {
+			sentences = append(sentences, s)
+		}
+	}
+	return sentences
+}
+
+// WrapTextToWidth wraps text according to terminal visual rune width.
+func WrapTextToWidth(text string, maxWidth int) []string {
+	if maxWidth <= 0 {
+		maxWidth = 80
+	}
+	runes := []rune(text)
+	if len(runes) == 0 {
+		return nil
+	}
+
+	var lines []string
+	var current []rune
+	currentWidth := 0
+
+	for _, r := range runes {
+		rw := runewidth.RuneWidth(r)
+		if currentWidth+rw > maxWidth && len(current) > 0 {
+			lines = append(lines, string(current))
+			current = nil
+			currentWidth = 0
+		}
+		current = append(current, r)
+		currentWidth += rw
+	}
+	if len(current) > 0 {
+		lines = append(lines, string(current))
+	}
+	return lines
+}
+
+// FormatLog wraps novel paragraphs as enterprise microservice logs with auto sentence-splitting and width wrapping.
+func FormatLog(paragraphs []string, start time.Time, maxWidth int) string {
 	if len(paragraphs) == 0 {
 		return ""
+	}
+	if maxWidth <= 0 {
+		maxWidth = 90
 	}
 
 	var b strings.Builder
@@ -58,20 +132,43 @@ func FormatLog(paragraphs []string, start time.Time) string {
 	r := rand.New(rand.NewSource(start.UnixNano()))
 
 	for i, p := range paragraphs {
-		// Advance timestamp slightly between 1.2s - 3.5s
-		currTime = currTime.Add(time.Duration(1200+r.Intn(2300)) * time.Millisecond)
-		timeStr := currTime.Format("2006-01-02 15:04:05.000")
+		sentences := SplitIntoSentences(p)
+		if len(sentences) == 0 {
+			sentences = []string{p}
+		}
+
 		workerID := r.Intn(16) + 1
 		pkg := logPackages[r.Intn(len(logPackages))]
 		lvl := logLevels[r.Intn(len(logLevels))]
 
-		line := fmt.Sprintf("%s [%s] [worker-pool-%02d] %s - %s\n",
-			timeStr, lvl, workerID, pkg, p)
-		b.WriteString(line)
+		for _, sent := range sentences {
+			currTime = currTime.Add(time.Duration(600+r.Intn(1400)) * time.Millisecond)
+			timeStr := currTime.Format("2006-01-02 15:04:05.000")
+			prefix := fmt.Sprintf("%s [%s] [worker-pool-%02d] %s - ", timeStr, lvl, workerID, pkg)
+			prefixWidth := runewidth.StringWidth(prefix)
+
+			availWidth := maxWidth - prefixWidth
+			if availWidth < 20 {
+				availWidth = max(20, maxWidth-35)
+			}
+
+			wrappedParts := WrapTextToWidth(sent, availWidth)
+			for partIdx, part := range wrappedParts {
+				if partIdx == 0 {
+					b.WriteString(fmt.Sprintf("%s%s\n", prefix, part))
+				} else {
+					// Continuation line with slight millisecond advance and ellipsis
+					currTime = currTime.Add(80 * time.Millisecond)
+					contTimeStr := currTime.Format("2006-01-02 15:04:05.000")
+					contPrefix := fmt.Sprintf("%s [%s] [worker-pool-%02d] %s - ...", contTimeStr, lvl, workerID, pkg)
+					b.WriteString(fmt.Sprintf("%s%s\n", contPrefix, part))
+				}
+			}
+		}
 
 		// Every few paragraphs, insert an extra fake system debug log to increase authenticity
 		if i%4 == 3 {
-			currTime = currTime.Add(150 * time.Millisecond)
+			currTime = currTime.Add(120 * time.Millisecond)
 			fakeHeartbeat := fmt.Sprintf("%s [DEBUG] [worker-pool-%02d] %s - sync buffer snapshot, batch_id=%x, pending=0\n",
 				currTime.Format("2006-01-02 15:04:05.000"), workerID, pkg, r.Int31())
 			b.WriteString(fakeHeartbeat)
@@ -81,10 +178,13 @@ func FormatLog(paragraphs []string, start time.Time) string {
 	return b.String()
 }
 
-// FormatCode wraps paragraphs inside code comments of a simulated Go source file.
-func FormatCode(paragraphs []string, pkgName string) string {
+// FormatCode wraps paragraphs inside code comments of a simulated Go source file with line wrapping.
+func FormatCode(paragraphs []string, pkgName string, maxWidth int) string {
 	if pkgName == "" {
 		pkgName = "service"
+	}
+	if maxWidth <= 0 {
+		maxWidth = 80
 	}
 
 	var b strings.Builder
@@ -93,7 +193,11 @@ func FormatCode(paragraphs []string, pkgName string) string {
 
 	for i, p := range paragraphs {
 		fnName := fmt.Sprintf("ExecuteTask%03d", i+1)
-		b.WriteString(fmt.Sprintf("// %s\n", p))
+		commentWidth := max(20, maxWidth-6)
+		wrappedComment := WrapTextToWidth(p, commentWidth)
+		for _, line := range wrappedComment {
+			b.WriteString(fmt.Sprintf("// %s\n", line))
+		}
 		b.WriteString(fmt.Sprintf("// @TraceID: req-%06d\n", i*107+42))
 		b.WriteString(fmt.Sprintf("func (s *Handler) %s(ctx context.Context) error {\n", fnName))
 		b.WriteString("\tselect {\n")
@@ -109,17 +213,25 @@ func FormatCode(paragraphs []string, pkgName string) string {
 	return b.String()
 }
 
-// FormatClassic wraps paragraphs with clean indentations and double linebreaks.
-func FormatClassic(paragraphs []string) string {
+// FormatClassic wraps paragraphs with clean indentations and visual width wrapping.
+func FormatClassic(paragraphs []string, maxWidth int) string {
 	if len(paragraphs) == 0 {
 		return ""
 	}
+	if maxWidth <= 0 {
+		maxWidth = 80
+	}
+
 	var b strings.Builder
 	for i, p := range paragraphs {
-		b.WriteString("  ")
-		b.WriteString(p)
+		wrapped := WrapTextToWidth(p, maxWidth-4)
+		for _, line := range wrapped {
+			b.WriteString("  ")
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
 		if i < len(paragraphs)-1 {
-			b.WriteString("\n\n")
+			b.WriteString("\n")
 		}
 	}
 	return b.String()
