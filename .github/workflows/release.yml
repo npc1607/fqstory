@@ -1,0 +1,108 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Build All Platforms & Package
+        id: build
+        run: |
+          TAG="${{ github.ref_name }}"
+          if [ -z "$TAG" ] || [ "$TAG" = "main" ]; then
+            TAG="${{ github.event.inputs.tag_name }}"
+          fi
+          if [ -z "$TAG" ]; then
+            TAG="v1.0.0"
+          fi
+          echo "Building for tag: $TAG"
+
+          mkdir -p dist
+          COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "none")
+          BUILD_TIME=$(date -u "+%Y-%m-%d_%H:%M:%S")
+          LDFLAGS="-s -w -X 'main.Version=${TAG}' -X 'main.Commit=${COMMIT}' -X 'main.BuildTime=${BUILD_TIME}'"
+
+          TARGETS=(
+            "darwin/amd64/fqstory"
+            "darwin/arm64/fqstory"
+            "linux/amd64/fqstory"
+            "linux/arm64/fqstory"
+            "windows/amd64/fqstory.exe"
+            "windows/arm64/fqstory.exe"
+          )
+
+          for TARGET in "${TARGETS[@]}"; do
+            IFS="/" read -r OS ARCH BINARY <<< "$TARGET"
+            OUTPUT_DIR="dist/${OS}_${ARCH}"
+            mkdir -p "$OUTPUT_DIR"
+            
+            echo "🔨 Compiling for ${OS}/${ARCH}..."
+            CGO_ENABLED=0 GOOS=$OS GOARCH=$ARCH go build -ldflags "$LDFLAGS" -o "${OUTPUT_DIR}/${BINARY}" ./cmd/fqstory
+
+            cp README.md LICENSE* "${OUTPUT_DIR}/" 2>/dev/null || true
+
+            ARCHIVE_NAME="fqstory_${TAG}_${OS}_${ARCH}"
+            if [ "$OS" = "windows" ]; then
+              (cd "$OUTPUT_DIR" && zip -q -r "../../dist/${ARCHIVE_NAME}.zip" .)
+            else
+              tar -czf "dist/${ARCHIVE_NAME}.tar.gz" -C "$OUTPUT_DIR" .
+            fi
+            rm -rf "$OUTPUT_DIR"
+          done
+
+          cd dist
+          sha256sum * > checksums.txt
+          echo "Generated packages:"
+          ls -lh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+          name: "fqstory ${{ github.ref_name }}"
+          generate_release_notes: true
+          body: |
+            ## 🍅 fqstory - 番茄小说终端摸鱼阅读器
+
+            ### 🚀 跨平台二进制发布包
+            包含 macOS (Apple Silicon / Intel)、Linux (x86_64 / aarch64) 及 Windows 架构无依赖纯 Go 单文件可执行包。
+
+            ### 📦 SHA256 校验和
+            各架构发布包的哈希值记录在附件 `checksums.txt` 中。
+
+            ### ⌨️ 快捷操作指引
+            - `m`：循环切换摸鱼伪装模式（微服务日志流 / 源码注释 / 单行微型跑马灯 / 经典终端）
+            - `b` 或 `Esc`：0.1 秒瞬切工作全屏老板键
+            - `r`：浏览热门排行榜与分类榜单
+            - `L`：抖音/番茄小说 App 扫码登录或粘贴 Cookie
+            - `Shift+D`：批量离线缓存接下来 20 章
+            - `a`：假日志自动滚屏开关
+            - `/`：全量目录实时搜索与序号直达
